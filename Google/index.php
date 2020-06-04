@@ -1,27 +1,16 @@
 <?php
 
 error_reporting(E_ALL);
-
 ini_set('display_errors', 1);
 
-// If you've used composer to include the library
 require __DIR__ . '/vendor/autoload.php';
 
-if (php_sapi_name() != 'cli') {
-    throw new Exception('This application must be run on the command line.');
-}
-
-/**
- * Returns an authorized API client.
- * @return Google_Client the authorized client object
- */
 function getClient()
 {
     $client = new Google_Client();
 
-    $client->setApplicationName('Calendar API Test');
+    $client->setApplicationName('YourSpace Event Creator');
 
-    //$client->setScopes( ['https://www.googleapis.com/auth/calendar'] );
     $client->setScopes(Google_Service_Calendar::CALENDAR_EVENTS);
 
     $client->setAuthConfig('credentials.json');
@@ -41,32 +30,17 @@ function getClient()
         // Refresh the token if possible, else fetch a new one.
         if ($client->getRefreshToken()) {
             $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-        } else {
-            // Request authorization from the user.
-            $authUrl = $client->createAuthUrl();
-            printf("Open the following link in your browser:\n%s\n", $authUrl);
-            print 'Enter verification code: ';
 
-            // Check Param on redirected URL, for ?code=#############  
-            // you have to copy only ?code= $_GET parms data and paste in console
-            $authCode = trim(fgets(STDIN)); // Get code after Authentication
-
-            // Exchange authorization code for an access token.
-            $accessToken = $client->fetchAccessTokenWithAuthCode($authCode);
-            $client->setAccessToken($accessToken);
-
-            // Check to see if there was an error.
-            if (array_key_exists('error', $accessToken)) {
-                throw new Exception(join(', ', $accessToken));
+             // Save the token to a file.
+            if (!file_exists(dirname($tokenPath))) {
+                mkdir(dirname($tokenPath), 0700, true);
             }
-        }
 
-        // Save the token to a file.
-        if (!file_exists(dirname($tokenPath))) {
-            mkdir(dirname($tokenPath), 0700, true);
-        }
-
-        file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+            file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+        } else {
+            // Generate new token seperate to this application and then place them in token.json
+            echo "Access Token and Refresh Token invalid, refresh them";
+        }  
     }
     return $client;
 }
@@ -93,7 +67,7 @@ $event = new Google_Service_Calendar_Event(array(
 
 $calendarId = 'primary';
 
-$opts = array('sendNotifications' => true, 'conferenceDataVersion' => true); // send Notification immediately by Mail or Stop Hangout Call Link
+$opts = array('conferenceDataVersion' => true);
 
 $event = $service->events->insert($calendarId, $event, $opts ); 
 
